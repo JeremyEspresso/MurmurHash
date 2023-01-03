@@ -1,0 +1,21 @@
+name: .NET
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: 7.0.x
+    - name: Build
+      run: |
+        dotnet restore
+        dotnet build -c Release --no-restore
+    - name: Test
+      run: dotnet test -c Release --no-restore --no-build --verbosity minimal
