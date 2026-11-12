@@ -1,0 +1,87 @@
+name: Release
+
+# Publishes to nuget.org when a version tag is pushed:
+#   git tag v0.1.0 && git push origin v0.1.0
+#
+# The tag must match <Version> in src/MurmurHash/MurmurHash.csproj and have an entry in CHANGELOG.md.
+# Authentication uses NuGet trusted publishing (OIDC), so no API key is stored in GitHub. It requires a
+# trusted publishing policy on nuget.org for: owner JeremyEspresso, repository MurmurHash, workflow release.yml.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/dotnet.yml
+
+  publish:
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the GitHub Release
+      id-token: write # NuGet trusted publishing (OIDC)
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - uses: actions/download-artifact@v8
+      with:
+        name: nuget
+        path: artifacts
+
+    - name: Check tag, package version and changelog
+      id: meta
+      run: |
+        version="${GITHUB_REF_NAME#v}"
+        package="artifacts/JeremyEspresso.MurmurHash.${version}.nupkg"
+        if [ ! -f "$package" ]; then
+          echo "::error::Tag $GITHUB_REF_NAME does not match the package version. Built: $(ls artifacts | tr '\n' ' ')"
+          exit 1
+        fi
+        awk -v v="$version" '
+          index($0, "## [" v "]") == 1 { found = 1; next }
+          found && /^## \[/ { exit }
+          found { print }
+        ' CHANGELOG.md > release-notes.md
+        if [ ! -s release-notes.md ]; then
+          echo "::error::CHANGELOG.md has no entry for $version"
+          exit 1
+        fi
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+        if [[ "$version" == *-* ]]; then echo "prerelease=true" >> "$GITHUB_OUTPUT"; fi
+
+    - uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: 10.0.x
+
+    - name: NuGet login (trusted publishing)
+      id: login
+      uses: NuGet/login@v1
+      with:
+        user: JeremyEspresso
+
+    - name: Push to nuget.org
+      # Pushes the .nupkg; the matching .snupkg next to it goes to the NuGet symbol server.
+      run: >
+        dotnet nuget push "artifacts/JeremyEspresso.MurmurHash.${{ steps.meta.outputs.version }}.nupkg"
+        --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
+        --source https://api.nuget.org/v3/index.json
+        --skip-duplicate
+
+    - name: Create GitHub Release
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: >
+        gh release create "$GITHUB_REF_NAME" artifacts/*
+        --verify-tag
+        --title "v${{ steps.meta.outputs.version }}"
+        --notes-file release-notes.md
+        ${{ steps.meta.outputs.prerelease == 'true' && '--prerelease' || '' }}

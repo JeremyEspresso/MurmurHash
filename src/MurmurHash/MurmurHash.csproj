@@ -12,6 +12,7 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageTags>MurmurHash MurmurHash3 zero-allocation fast hash algorithm</PackageTags>
+    <PackageReleaseNotes>https://github.com/JeremyEspresso/MurmurHash/blob/master/CHANGELOG.md</PackageReleaseNotes>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
