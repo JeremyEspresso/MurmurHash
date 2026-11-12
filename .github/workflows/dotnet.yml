@@ -29,6 +29,12 @@ jobs:
       run: dotnet test --project tests/MurmurHash.UnitTests -c Release -p:LibraryTargetFramework=netstandard2.0
     - name: Test (netstandard2.1 library build)
       run: dotnet test --project tests/MurmurHash.UnitTests -c Release -p:LibraryTargetFramework=netstandard2.1
+    - name: NativeAOT smoke test (publish with no trim/AOT warnings, run reference vectors)
+      run: |
+        for tfm in net8.0 net10.0 net11.0; do
+          dotnet publish tests/MurmurHash.AotTests -c Release -f $tfm -r linux-x64 -o aot/$tfm
+          ./aot/$tfm/MurmurHash.AotTests
+        done
     - name: Pack
       run: dotnet pack src/MurmurHash -c Release --no-build -o artifacts
     - uses: actions/upload-artifact@v7

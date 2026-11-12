@@ -7,8 +7,9 @@ using BenchmarkDotNet.Running;
 //   --tfms net8.0,net10.0   runtimes to benchmark (default: the runtime this process runs on)
 //   --netstandard           additionally benchmark the netstandard2.1 build of the library on each runtime
 //   --quick                 fewer iterations, for exploratory runs only
+//   --aot                   additionally benchmark each runtime compiled with NativeAOT (no tiered JIT / dynamic PGO)
 var tfms = new List<string>();
-bool netstandard = false, quick = false;
+bool netstandard = false, quick = false, aot = false;
 var bdnArgs = new List<string>();
 for (int i = 0; i < args.Length; i++)
 {
@@ -17,12 +18,13 @@ for (int i = 0; i < args.Length; i++)
         case "--tfms": tfms.AddRange(args[++i].Split(',', StringSplitOptions.RemoveEmptyEntries)); break;
         case "--netstandard": netstandard = true; break;
         case "--quick": quick = true; break;
+        case "--aot": aot = true; break;
         default: bdnArgs.Add(args[i]); break;
     }
 }
 
 var config = DefaultConfig.Instance.WithOptions(ConfigOptions.JoinSummary);
-if (tfms.Count > 0 || netstandard || quick)
+if (tfms.Count > 0 || netstandard || quick || aot)
 {
     config = config.HideColumns("Arguments");
     if (tfms.Count == 0)
@@ -44,6 +46,26 @@ if (tfms.Count > 0 || netstandard || quick)
         var baseJob = (quick ? Job.Default.WithWarmupCount(4).WithIterationCount(12).WithLaunchCount(1) : Job.Default)
             .WithRuntime(runtime);
         config = config.AddJob(baseJob.WithId(name));
+        if (aot)
+        {
+            Runtime aotRuntime = tfm switch
+            {
+                "net8.0" => NativeAotRuntime.Net80,
+                "net9.0" => NativeAotRuntime.Net90,
+                "net10.0" => NativeAotRuntime.Net10_0,
+                "net11.0" => NativeAotRuntime.Net11_0,
+                _ => throw new ArgumentException($"Unsupported TFM {tfm}"),
+            };
+
+            // NativeAOT links with clang by default; fall back to gcc where clang is not installed.
+            var aotJob = baseJob.WithRuntime(aotRuntime).WithId(name + " NativeAOT");
+            if (!OperatingSystem.IsWindows() && !File.Exists("/usr/bin/clang") && File.Exists("/usr/bin/gcc"))
+            {
+                aotJob = aotJob.WithArguments([new MsBuildArgument("/p:CppCompilerAndLinker=gcc")]);
+            }
+
+            config = config.AddJob(aotJob);
+        }
         if (netstandard)
         {
             config = config.AddJob(baseJob

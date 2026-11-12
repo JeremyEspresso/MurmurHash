@@ -16,6 +16,9 @@ Get MurmurHash on NuGet: [https://www.nuget.org/packages/JeremyEspresso.MurmurHa
 | `netstandard2.1` | .NET Core 3.x, Mono 6.4+, Xamarin, Unity 2021.2+ |
 | `netstandard2.0` | .NET Framework 4.6.2+, older Mono/Unity |
 
+The library is trimming- and NativeAOT-compatible (`IsAotCompatible`): CI publishes a NativeAOT app on .NET 8, 10 and 11
+with zero trim/AOT warnings and checks it against the reference vectors.
+
 The output is identical to the reference implementation ([SMHasher `MurmurHash3_x86_32`](https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp)) on every platform and endianness.
 The test suite checks 1505 reference vectors (lengths 0-300, 5 seeds) generated with the reference C code and cross-checked with the Python [`mmh3`](https://pypi.org/project/mmh3/) package.
 
