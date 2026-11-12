@@ -12,7 +12,8 @@
     <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.12.0" />
   </ItemGroup>
   <ItemGroup Label="Benchmarks">
-    <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
+    <!-- 0.16 preview: first BenchmarkDotNet version that knows .NET 11. Benchmarks only, never shipped. -->
+    <PackageVersion Include="BenchmarkDotNet" Version="0.16.0-preview.2" />
     <PackageVersion Include="MurmurHash.Net" Version="0.0.2" />
     <PackageVersion Include="murmurhash" Version="1.0.3" />
   </ItemGroup>
