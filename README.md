@@ -52,37 +52,38 @@ The `Hash32(ref ReadOnlySpan<byte>, uint)` overload from 0.0.x is still availabl
 
 | Input | .NET 8.0 | .NET 9.0 | .NET 10.0 | .NET 11.0 |
 |---|---:|---:|---:|---:|
-| 3 B | 1.34 ns | 1.34 ns | 1.32 ns | 1.31 ns |
-| 16 B | 2.65 ns | 2.63 ns | 2.61 ns | 2.59 ns |
-| 40 B | 6.06 ns | 6.10 ns | 6.07 ns | 6.00 ns |
-| 128 B | 22.22 ns | 21.90 ns | 21.95 ns | 22.03 ns |
-| 1024 B | 235 ns | 239 ns | 239 ns | 238 ns |
-| 16384 B | 3,887 ns | 3,914 ns | 3,829 ns | 3,861 ns |
+| 3 B | 1.37 ns | 1.37 ns | 1.38 ns | 1.38 ns |
+| 16 B | 2.45 ns | 2.42 ns | 2.44 ns | 2.38 ns |
+| 40 B | 5.21 ns | 5.22 ns | 5.22 ns | 5.24 ns |
+| 128 B | 20.53 ns | 20.49 ns | 20.52 ns | 20.54 ns |
+| 1024 B | 193 ns | 194 ns | 194 ns | 193 ns |
+| 16384 B | 3,247 ns | 3,211 ns | 3,212 ns | 3,212 ns |
 
 Compared with other implementations on .NET 8.0 (time relative to this library, lower is better):
 
 | Input | This library | [MurmurHash.Net](https://github.com/odinmillion/MurmurHash.Net) 0.0.2 | [HashDepot](https://github.com/ssg/HashDepot) 3.2.0 |
 |---|---:|---:|---:|
-| 3 B | 1.34 ns | 2.02x | 11.61x |
-| 16 B | 2.65 ns | 1.25x | 5.33x |
-| 40 B | 6.06 ns | 1.22x | 3.54x |
-| 128 B | 22.22 ns | 1.13x | 1.92x |
-| 1024 B | 235 ns | 1.02x | 1.10x |
-| 16384 B | 3,887 ns | 1.01x | 1.01x |
+| 3 B | 1.37 ns | 2.03x | 11.49x |
+| 16 B | 2.45 ns | 1.40x | 5.99x |
+| 40 B | 5.21 ns | 1.44x | 4.16x |
+| 128 B | 20.53 ns | 1.22x | 2.12x |
+| 1024 B | 193 ns | 1.26x | 1.35x |
+| 16384 B | 3,247 ns | 1.23x | 1.23x |
 
 Compared with other implementations on .NET 10.0 (time relative to this library, lower is better):
 
 | Input | This library | [MurmurHash.Net](https://github.com/odinmillion/MurmurHash.Net) 0.0.2 | [HashDepot](https://github.com/ssg/HashDepot) 3.2.0 |
 |---|---:|---:|---:|
-| 3 B | 1.32 ns | 1.67x | 6.20x |
-| 16 B | 2.61 ns | 1.35x | 1.34x |
-| 40 B | 6.07 ns | 1.20x | 1.24x |
-| 128 B | 21.95 ns | 1.11x | 1.13x |
-| 1024 B | 239 ns | 1.02x | 1.02x |
-| 16384 B | 3,829 ns | 1.01x | 1.00x |
+| 3 B | 1.38 ns | 1.50x | 6.18x |
+| 16 B | 2.44 ns | 1.37x | 1.44x |
+| 40 B | 5.22 ns | 1.44x | 1.49x |
+| 128 B | 20.52 ns | 1.22x | 1.24x |
+| 1024 B | 194 ns | 1.26x | 1.26x |
+| 16384 B | 3,212 ns | 1.24x | 1.24x |
 
-None of the implementations allocate. All three return identical, reference-correct hashes.
-From about 1 KB the implementations converge: MurmurHash3_x86_32 is a strictly serial chain (~4 cycles per 4 bytes), which caps throughput at ~4.3 bytes/ns on this machine regardless of implementation.
+None of the implementations allocate, and all three return identical, reference-correct hashes.
+
+These results are from an Intel Raptor Lake CPU, where `Hash32` uses its CPU-specific code path (Intel Ice Lake and newer). On other CPUs the general code path is used; it is about 10-19% slower for inputs of 16 bytes and larger and still matches or beats the other implementations. For large inputs, throughput is bounded by the algorithm itself: MurmurHash3_x86_32 is a strictly serial chain of operations per 4-byte block.
 
 ```ini
 BenchmarkDotNet v0.16.0-preview.2, Linux Fedora Linux 45 (Kinoite), VM

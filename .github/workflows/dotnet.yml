@@ -4,6 +4,10 @@ on:
   push:
     branches: [master]
   pull_request:
+  workflow_call: # reused by release.yml, so a release publishes exactly the package CI built and tested
+
+permissions:
+  contents: read
 
 jobs:
   build:
