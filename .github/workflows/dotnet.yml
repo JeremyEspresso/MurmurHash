@@ -1,21 +1,37 @@
 name: .NET
 
 on:
-  - push
-  - pull_request
+  push:
+    branches: [master]
+  pull_request:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-dotnet@v2
+    - uses: actions/checkout@v7
+    - uses: actions/setup-dotnet@v6
       with:
-        dotnet-version: 7.0.x
+        # SDK 11 builds everything; the older runtimes are needed to run the tests on each of them.
+        dotnet-version: |
+          8.0.x
+          9.0.x
+          10.0.x
+          11.0.x
+    - name: Restore
+      run: dotnet restore
     - name: Build
-      run: |
-        dotnet restore
-        dotnet build -c Release --no-restore
-    - name: Test
-      run: dotnet test -c Release --no-restore --no-build --verbosity minimal
+      run: dotnet build -c Release --no-restore
+    - name: Test (net8.0 library build, on .NET 8/9/10/11)
+      run: dotnet test -c Release --no-build
+    - name: Test (netstandard2.0 library build)
+      run: dotnet test --project tests/MurmurHash.UnitTests -c Release -p:LibraryTargetFramework=netstandard2.0
+    - name: Test (netstandard2.1 library build)
+      run: dotnet test --project tests/MurmurHash.UnitTests -c Release -p:LibraryTargetFramework=netstandard2.1
+    - name: Pack
+      run: dotnet pack src/MurmurHash -c Release --no-build -o artifacts
+    - uses: actions/upload-artifact@v7
+      with:
+        name: nuget
+        path: artifacts/*

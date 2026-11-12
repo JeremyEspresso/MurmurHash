@@ -31,4 +31,8 @@ public class HashBenchmarks
     // https://github.com/odinmillion/MurmurHash.Net
     [Benchmark]
     public uint OdinMillion() => global::MurmurHash.Net.MurmurHash3.Hash32(_input, 69);
+
+    // https://github.com/ssg/HashDepot
+    [Benchmark]
+    public uint HashDepot() => global::HashDepot.MurmurHash3.Hash32(_input, 69);
 }

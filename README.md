@@ -9,17 +9,28 @@ Except for the *magic* constants there is not much left of the original implemen
 Get MurmurHash on NuGet: [https://www.nuget.org/packages/JeremyEspresso.MurmurHash](https://www.nuget.org/packages/JeremyEspresso.MurmurHash)
 
 ---
+## Supported platforms
+| Target | Covers |
+|---|---|
+| `net8.0` | .NET 8, 9, 10, 11+ |
+| `netstandard2.1` | .NET Core 3.x, Mono 6.4+, Xamarin, Unity 2021.2+ |
+| `netstandard2.0` | .NET Framework 4.6.2+, older Mono/Unity |
+
+The output is identical to the reference implementation ([SMHasher `MurmurHash3_x86_32`](https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp)) on every platform and endianness.
+The test suite checks 1505 reference vectors (lengths 0-300, 5 seeds) generated with the reference C code and cross-checked with the Python [`mmh3`](https://pypi.org/project/mmh3/) package.
+
+---
 ## API Usage
 
 ```cs
+using System.Text;
 using MurmurHash;
 
 string input = "Hello World!";
 const uint seed = 420;
 
-ReadOnlySpan<byte> inputSpan = Encoding.UTF8.GetBytes(input).AsSpan();
-
-uint hash = MurmurHash3.Hash32(ref inputSpan, seed);
+uint hash = MurmurHash3.Hash32(Encoding.UTF8.GetBytes(input), seed);
+// or, without allocating: MurmurHash3.Hash32("Hello World!"u8, seed);
 
 Console.WriteLine(hash);
 ```
@@ -28,6 +39,9 @@ Output:
 ```
 1535517821
 ```
+
+The `Hash32(ref ReadOnlySpan<byte>, uint)` overload from 0.0.x is still available for backwards compatibility.
+
 ---
 ## Benchmarks
 ```ini
