@@ -1,19 +1,21 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <TargetFrameworks>$(TestTargetFrameworks)</TargetFrameworks>
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-minimum</AnalysisLevel>
+    <Optimize>true</Optimize>
+    <!-- Pass -p:LibraryTargetFramework=netstandard2.1 to benchmark the netstandard build of the library. -->
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet" Version="0.13.3" />
-    <PackageReference Include="MurmurHash.Net" Version="0.0.2" />
+    <PackageReference Include="BenchmarkDotNet" />
+    <PackageReference Include="MurmurHash.Net" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\MurmurHash\MurmurHash.csproj" />
+    <ProjectReference Include="..\..\src\MurmurHash\MurmurHash.csproj" Condition="'$(LibraryTargetFramework)' == ''" />
+    <ProjectReference Include="..\..\src\MurmurHash\MurmurHash.csproj" Condition="'$(LibraryTargetFramework)' != ''" SetTargetFramework="TargetFramework=$(LibraryTargetFramework)" />
   </ItemGroup>
-
 </Project>

@@ -1,35 +1,34 @@
-﻿using BenchmarkDotNet.Attributes;
-using System.Text;
+using BenchmarkDotNet.Attributes;
+using MurmurHash.Benchmarks.Baselines;
 
 namespace MurmurHash.Benchmarks;
 
 [MemoryDiagnoser]
 public class HashBenchmarks
 {
-    [Params("key", "a$6ajXViSAfFw5pR2kkz3Q28YGrDx$jeaLJ5HFPe", "!zhgt#HVY#tV%kPPZ$LXYEo@EqyKjqRJPzUb3*hhASWpdyZAF3!t$V96j9Eb9ivzMH2w4jvuyHaXRxd&YbHz*W8yZGJ#CXjXfqMzNGgf@YMfh*RdZpRXtPQ3mV$N9N!%")]
-    public string? StringInput { get; set; }
+    private byte[] _input = [];
 
-    public byte[]? Input { get; set; }
+    [Params(3, 16, 40, 128, 1024, 16384)]
+    public int Length { get; set; }
 
     [GlobalSetup]
     public void Setup()
     {
-        Input = Encoding.UTF8.GetBytes(StringInput!);
+        _input = new byte[Length];
+        new Random(42).NextBytes(_input);
     }
+
+    [Benchmark(Baseline = true)]
+    public uint Original()
+    {
+        ReadOnlySpan<byte> span = _input;
+        return OriginalMurmurHash3.Hash32(ref span, 69);
+    }
+
+    [Benchmark]
+    public uint Current() => MurmurHash3.Hash32(_input, 69);
 
     // https://github.com/odinmillion/MurmurHash.Net
     [Benchmark]
-    public uint OdinMillion_MurMurHashDotNet()
-    {
-        ReadOnlySpan<byte> arr = Input!.AsSpan();
-        return MurmurHash.Net.MurmurHash3.Hash32(arr, 69);
-    }
-
-
-    [Benchmark]
-    public uint MurMurHash3()
-    {
-        ReadOnlySpan<byte> arr = Input!.AsSpan();
-        return MurmurHash3.Hash32(ref arr, 69);
-    }
+    public uint OdinMillion() => global::MurmurHash.Net.MurmurHash3.Hash32(_input, 69);
 }
