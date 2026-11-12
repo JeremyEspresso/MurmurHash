@@ -8,8 +8,10 @@ using BenchmarkDotNet.Running;
 //   --netstandard           additionally benchmark the netstandard2.1 build of the library on each runtime
 //   --quick                 fewer iterations, for exploratory runs only
 //   --aot                   additionally benchmark each runtime compiled with NativeAOT (no tiered JIT / dynamic PGO)
+//   --aot-isa <set>         with --aot: also a NativeAOT job compiled for an instruction set, e.g. x86-64-v3 (IlcInstructionSet)
 var tfms = new List<string>();
 bool netstandard = false, quick = false, aot = false;
+string? aotIsa = null;
 var bdnArgs = new List<string>();
 for (int i = 0; i < args.Length; i++)
 {
@@ -19,6 +21,7 @@ for (int i = 0; i < args.Length; i++)
         case "--netstandard": netstandard = true; break;
         case "--quick": quick = true; break;
         case "--aot": aot = true; break;
+        case "--aot-isa": aotIsa = args[++i]; break;
         default: bdnArgs.Add(args[i]); break;
     }
 }
@@ -58,13 +61,16 @@ if (tfms.Count > 0 || netstandard || quick || aot)
             };
 
             // NativeAOT links with clang by default; fall back to gcc where clang is not installed.
-            var aotJob = baseJob.WithRuntime(aotRuntime).WithId(name + " NativeAOT");
-            if (!OperatingSystem.IsWindows() && !File.Exists("/usr/bin/clang") && File.Exists("/usr/bin/gcc"))
+            var linker = !OperatingSystem.IsWindows() && !File.Exists("/usr/bin/clang") && File.Exists("/usr/bin/gcc")
+                ? new[] { new MsBuildArgument("/p:CppCompilerAndLinker=gcc") }
+                : [];
+            config = config.AddJob(baseJob.WithRuntime(aotRuntime).WithArguments(linker).WithId(name + " NativeAOT"));
+            if (aotIsa is not null)
             {
-                aotJob = aotJob.WithArguments([new MsBuildArgument("/p:CppCompilerAndLinker=gcc")]);
+                config = config.AddJob(baseJob.WithRuntime(aotRuntime)
+                    .WithArguments([.. linker, new MsBuildArgument($"/p:IlcInstructionSet={aotIsa}")])
+                    .WithId($"{name} NativeAOT {aotIsa}"));
             }
-
-            config = config.AddJob(aotJob);
         }
         if (netstandard)
         {
