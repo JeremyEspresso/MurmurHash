@@ -9,6 +9,13 @@ using BenchmarkDotNet.Running;
 //   --quick                 fewer iterations, for exploratory runs only
 //   --aot                   additionally benchmark each runtime compiled with NativeAOT (no tiered JIT / dynamic PGO)
 //   --aot-isa <set>         with --aot: also a NativeAOT job compiled for an instruction set, e.g. x86-64-v3 (IlcInstructionSet)
+//   --cpuinfo               print which CPU-specific code paths this machine uses, then exit
+if (args.Length == 1 && args[0] == "--cpuinfo")
+{
+    Console.WriteLine($"HasFastComplexLea={MurmurHash.CpuInfo.HasFastComplexLea}");
+    return 0;
+}
+
 var tfms = new List<string>();
 bool netstandard = false, quick = false, aot = false;
 string? aotIsa = null;
@@ -82,3 +89,4 @@ if (tfms.Count > 0 || netstandard || quick || aot)
 }
 
 BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run([.. bdnArgs], config);
+return 0;
