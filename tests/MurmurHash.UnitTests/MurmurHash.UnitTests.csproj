@@ -3,6 +3,7 @@
     <TargetFrameworks>$(TestTargetFrameworks)</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- Test naming (Method_Scenario_Result) intentionally uses underscores. -->
     <NoWarn>$(NoWarn);CA1707</NoWarn>
     <!-- Pass -p:LibraryTargetFramework=netstandard2.0 (or 2.1) to run the tests against the netstandard build. -->
