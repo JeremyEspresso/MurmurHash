@@ -44,20 +44,49 @@ The `Hash32(ref ReadOnlySpan<byte>, uint)` overload from 0.0.x is still availabl
 
 ---
 ## Benchmarks
+
+`MurmurHash3.Hash32` on each runtime (mean, lower is better):
+
+| Input | .NET 8.0 | .NET 9.0 | .NET 10.0 | .NET 11.0 |
+|---|---:|---:|---:|---:|
+| 3 B | 1.34 ns | 1.34 ns | 1.32 ns | 1.31 ns |
+| 16 B | 2.65 ns | 2.63 ns | 2.61 ns | 2.59 ns |
+| 40 B | 6.06 ns | 6.10 ns | 6.07 ns | 6.00 ns |
+| 128 B | 22.22 ns | 21.90 ns | 21.95 ns | 22.03 ns |
+| 1024 B | 235 ns | 239 ns | 239 ns | 238 ns |
+| 16384 B | 3,887 ns | 3,914 ns | 3,829 ns | 3,861 ns |
+
+Compared with other implementations on .NET 8.0 (time relative to this library, lower is better):
+
+| Input | This library | [MurmurHash.Net](https://github.com/odinmillion/MurmurHash.Net) 0.0.2 | [HashDepot](https://github.com/ssg/HashDepot) 3.2.0 |
+|---|---:|---:|---:|
+| 3 B | 1.34 ns | 2.02x | 11.61x |
+| 16 B | 2.65 ns | 1.25x | 5.33x |
+| 40 B | 6.06 ns | 1.22x | 3.54x |
+| 128 B | 22.22 ns | 1.13x | 1.92x |
+| 1024 B | 235 ns | 1.02x | 1.10x |
+| 16384 B | 3,887 ns | 1.01x | 1.01x |
+
+Compared with other implementations on .NET 10.0 (time relative to this library, lower is better):
+
+| Input | This library | [MurmurHash.Net](https://github.com/odinmillion/MurmurHash.Net) 0.0.2 | [HashDepot](https://github.com/ssg/HashDepot) 3.2.0 |
+|---|---:|---:|---:|
+| 3 B | 1.32 ns | 1.67x | 6.20x |
+| 16 B | 2.61 ns | 1.35x | 1.34x |
+| 40 B | 6.07 ns | 1.20x | 1.24x |
+| 128 B | 21.95 ns | 1.11x | 1.13x |
+| 1024 B | 239 ns | 1.02x | 1.02x |
+| 16384 B | 3,829 ns | 1.01x | 1.00x |
+
+None of the implementations allocate. All three return identical, reference-correct hashes.
+From about 1 KB the implementations converge: MurmurHash3_x86_32 is a strictly serial chain (~4 cycles per 4 bytes), which caps throughput at ~4.3 bytes/ns on this machine regardless of implementation.
+
 ```ini
-BenchmarkDotNet=v0.13.3, OS=Windows 10 (10.0.19045.2364)
-Intel Core i7-9700K CPU 3.60GHz (Coffee Lake), 1 CPU, 8 logical and 8 physical cores
-.NET SDK=7.0.101
-  [Host]     : .NET 7.0.1 (7.0.122.56804), X64 RyuJIT AVX2
-  DefaultJob : .NET 7.0.1 (7.0.122.56804), X64 RyuJIT AVX2
+BenchmarkDotNet v0.16.0-preview.2, Linux Fedora Linux 45 (Kinoite), VM
+13th Gen Intel Core i9-13900K, 26 vCPUs, AVX2
+.NET 8.0.34, 9.0.23, 10.0.15, 11.0.0 (X64 RyuJIT x86-64-v3)
 ```
-|                       Method |          StringInput |      Mean |     Error |    StdDev | Allocated |
-|----------------------------- |--------------------- |----------:|----------:|----------:|----------:|
-| **MurMurHash3** |  **!zhg(...)9N!% [128]** | **28.540 ns** | **0.6031 ns** | **0.9909 ns** | **-** |
-| OdinMillion_MurMurHashDotNet |  !zhg(...)9N!% [128] | 39.308 ns | 0.8142 ns | 1.1934 ns | - |
-| **MurMurHash3** | **a$6aj(...)5HFPe [40]** |  **9.142 ns** | **0.2075 ns** | **0.2625 ns** | **-** |
-| OdinMillion_MurMurHashDotNet | a$6aj(...)5HFPe [40] | 12.032 ns | 0.2711 ns | 0.3620 ns | - |
-| **MurMurHash3** | **key** |  **1.801 ns** | **0.0643 ns** | **0.0858 ns** | **-** |
-| OdinMillion_MurMurHashDotNet | key | 4.415 ns | 0.1052 ns | 0.1542 ns | - |
+Full results: [benchmarks/results-2026-11.md](benchmarks/results-2026-11.md). Run them yourself with
+`dotnet run -c Release --project benchmarks/MurmurHash.Benchmarks -f net10.0 -- --filter "*HashBenchmarks*" --tfms net8.0,net10.0`.
 
 ---
