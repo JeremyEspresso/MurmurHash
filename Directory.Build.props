@@ -1,0 +1,26 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    <!-- .NET 8/9 are past end of support but still widely deployed; keep testing/benchmarking them without warnings. -->
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+
+    <!-- Runtimes the tests and benchmarks run on. -->
+    <TestTargetFrameworks>net8.0;net9.0;net10.0</TestTargetFrameworks>
+    <TestTargetFrameworks Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(NETCoreSdkVersion)', '11.0'))">$(TestTargetFrameworks);net11.0</TestTargetFrameworks>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Authors>JeremyEspresso</Authors>
+    <Copyright>Copyright (c) JeremyEspresso 2023-2026</Copyright>
+    <PackageProjectUrl>https://github.com/JeremyEspresso/MurmurHash</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/JeremyEspresso/MurmurHash.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+</Project>

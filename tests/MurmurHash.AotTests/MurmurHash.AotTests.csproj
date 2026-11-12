@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Smoke test for NativeAOT and trimming: publish this app with NativeAOT and run it.
+      dotnet publish tests/MurmurHash.AotTests -c Release -f net10.0 -r linux-x64
+    The publish must produce no trim/AOT warnings (they are errors here), and the app exits 0 when every
+    reference vector matches. It is a plain console app so it does not depend on a test framework under AOT.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>$(TestTargetFrameworks)</TargetFrameworks>
+    <IsPackable>false</IsPackable>
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Report every trim/AOT warning individually (and fail on them via TreatWarningsAsErrors). -->
+    <TrimmerSingleWarn>false</TrimmerSingleWarn>
+    <IlcTreatWarningsAsErrors>true</IlcTreatWarningsAsErrors>
+    <!-- Use gcc as the native linker when clang is not installed (e.g. Fedora Atomic desktops). -->
+    <CppCompilerAndLinker Condition="'$(CppCompilerAndLinker)' == '' and '$(OS)' != 'Windows_NT' and !Exists('/usr/bin/clang') and Exists('/usr/bin/gcc')">gcc</CppCompilerAndLinker>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MurmurHash\MurmurHash.csproj" />
+    <EmbeddedResource Include="..\MurmurHash.UnitTests\TestVectors\vectors.txt" LogicalName="vectors.txt" />
+  </ItemGroup>
+</Project>

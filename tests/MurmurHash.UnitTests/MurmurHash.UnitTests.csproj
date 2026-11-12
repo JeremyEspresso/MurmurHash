@@ -1,28 +1,28 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-
+    <TargetFrameworks>$(TestTargetFrameworks)</TargetFrameworks>
+    <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Test naming (Method_Scenario_Result) intentionally uses underscores. -->
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+    <!-- Pass -p:LibraryTargetFramework=netstandard2.0 (or 2.1) to run the tests against the netstandard build. -->
+    <DefineConstants Condition="'$(LibraryTargetFramework)' != ''">$(DefineConstants);NETSTANDARD_LIBRARY</DefineConstants>
+    <LibraryTargetFramework Condition="'$(LibraryTargetFramework)' == ''"></LibraryTargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.2" />
-    <PackageReference Include="xunit" Version="2.4.2" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="coverlet.collector" Version="3.1.2">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
+    <Using Include="Xunit" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\MurmurHash\MurmurHash.csproj" />
+    <ProjectReference Include="..\..\src\MurmurHash\MurmurHash.csproj" Condition="'$(LibraryTargetFramework)' == ''" />
+    <ProjectReference Include="..\..\src\MurmurHash\MurmurHash.csproj" Condition="'$(LibraryTargetFramework)' != ''" SetTargetFramework="TargetFramework=$(LibraryTargetFramework)" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="TestVectors\vectors.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

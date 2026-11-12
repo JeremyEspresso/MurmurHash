@@ -1,35 +1,33 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-		<TargetFramework>net7.0</TargetFramework>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net8.0</TargetFrameworks>
+    <IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
-		<PackageId>JeremyEspresso.MurmurHash</PackageId>
-		<Version>0.0.1</Version>
-		<Title>MurmurHash</Title>
-		<Authors>JeremyEspresso</Authors>
-		<Description>Super fast zero allocation MurmurHash3 implementation.</Description>
-		<PackageProjectUrl>https://github.com/JeremyEspresso/MurmurHash</PackageProjectUrl>
-		<Copyright>Copyright (c) JeremyEspresso 2023</Copyright>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageIcon>icon.png</PackageIcon>
-		<RepositoryUrl>https://github.com/JeremyEspresso/MurmurHash.git</RepositoryUrl>
-		<PackageLicenseFile>LICENSE</PackageLicenseFile>
-		<PackageTags>MurmurHash zero-allocation fast hash algorithm</PackageTags>
-	</PropertyGroup>
-	<ItemGroup>
-	  <None Include="..\..\icon.png">
-	    <Pack>True</Pack>
-	    <PackagePath>\</PackagePath>
-	  </None>
-	  <None Include="..\..\LICENSE">
-	    <Pack>True</Pack>
-	    <PackagePath>\</PackagePath>
-	  </None>
-	  <None Include="..\..\README.md">
-	    <Pack>True</Pack>
-	    <PackagePath>\</PackagePath>
-	  </None>
-	</ItemGroup>
+    <PackageId>JeremyEspresso.MurmurHash</PackageId>
+    <Version>0.1.0</Version>
+    <Title>MurmurHash</Title>
+    <Description>Super fast zero allocation MurmurHash3 implementation.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageTags>MurmurHash MurmurHash3 zero-allocation fast hash algorithm</PackageTags>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Memory" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' or '$(TargetFramework)' == 'netstandard2.1'">
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="MurmurHash.UnitTests" />
+    <None Include="..\..\icon.png" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 </Project>
