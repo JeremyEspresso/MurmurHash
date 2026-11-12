@@ -3,6 +3,16 @@
 All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- MurmurHash3 x64 128-bit, with output identical to the reference implementation (SMHasher `MurmurHash3_x64_128`) on every platform and endianness:
+  - `Hash128(ReadOnlySpan<byte> bytes, Span<byte> destination, uint seed = 0)` writes the 16-byte hash in the reference byte order (all target frameworks).
+  - `Hash128(ReadOnlySpan<byte> bytes, uint seed = 0)` returns a `UInt128` (.NET 8 and later).
+  - `Hash64(ReadOnlySpan<byte> bytes, uint seed = 0)` returns the first 64 bits of the 128-bit hash.
+  - `Hash128SizeInBytes` (16).
+- The `MurmurHash.DisableCpuSpecificOptimizations` switch also applies to the 128-bit hash.
+
 ## [0.1.0] - 2026-11-12
 
 ### Fixed
@@ -27,5 +37,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 - Initial release: zero-allocation `MurmurHash3.Hash32` (x86, 32-bit) for `net7.0`.
 
+[Unreleased]: https://github.com/JeremyEspresso/MurmurHash/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/JeremyEspresso/MurmurHash/compare/v0.0.1...v0.1.0
 [0.0.1]: https://github.com/JeremyEspresso/MurmurHash/releases/tag/v0.0.1
