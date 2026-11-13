@@ -7,6 +7,7 @@
     <AnalysisLevel>latest-minimum</AnalysisLevel>
     <Optimize>true</Optimize>
     <!-- Pass -p:LibraryTargetFramework=netstandard2.1 to benchmark the netstandard build of the library. -->
+    <DefineConstants Condition="'$(LibraryTargetFramework)' != ''">$(DefineConstants);NETSTANDARD_LIBRARY</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

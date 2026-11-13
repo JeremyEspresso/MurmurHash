@@ -19,7 +19,7 @@ Get MurmurHash on NuGet: [https://www.nuget.org/packages/JeremyEspresso.MurmurHa
 The library is trimming- and NativeAOT-compatible (`IsAotCompatible`): CI publishes a NativeAOT app on .NET 8, 10 and 11
 with zero trim/AOT warnings and checks it against the reference vectors.
 
-The output is identical to the reference implementation ([SMHasher `MurmurHash3_x86_32`](https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp)) on every platform and endianness.
+The output is identical to the reference implementation ([SMHasher `MurmurHash3_x86_32` and `MurmurHash3_x64_128`](https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp)) on every platform and endianness.
 The test suite checks 1505 reference vectors (lengths 0-300, 5 seeds) generated with the reference C code and cross-checked with the Python [`mmh3`](https://pypi.org/project/mmh3/) package.
 
 ---
@@ -45,8 +45,36 @@ Output:
 
 The `Hash32(ref ReadOnlySpan<byte>, uint)` overload from 0.0.x is still available for backwards compatibility.
 
+### 128-bit and 64-bit hashes
+
+`Hash128` and `Hash64` implement MurmurHash3 x64 128-bit, the variant to use when you need more than 32 bits.
+It is also faster than `Hash32` for inputs of 40 bytes and larger (about 2x at 128 bytes and 2.4x for large inputs), because it processes 16 bytes per step.
+
+```cs
+ReadOnlySpan<byte> data = "Hello World!"u8;
+
+UInt128 hash128 = MurmurHash3.Hash128(data, 420);    // .NET 8 and later
+Console.WriteLine(hash128.ToString("x32"));         // 9ef90e0d6173d4c70d22a9c023252218
+
+Span<byte> bytes = stackalloc byte[MurmurHash3.Hash128SizeInBytes];
+MurmurHash3.Hash128(data, bytes, 420);              // all platforms
+Console.WriteLine(Convert.ToHexString(bytes));      // 18222523C0A9220DC7D473610D0EF99E
+
+ulong hash64 = MurmurHash3.Hash64(data, 420);       // the first 64 bits of the 128-bit hash
+Console.WriteLine(hash64);                          // 946505514389676568
+```
+
+- The `destination` overload writes the 16 bytes in the reference implementation's byte order (the same bytes as
+  SMHasher's output and Python's `mmh3.hash_bytes`).
+- In the `UInt128`, the reference implementation's `h1` is the lower 64 bits and `h2` the upper 64 bits, so on
+  little-endian machines its in-memory layout equals the `destination` bytes.
+- `Hash64` returns `h1`, the first 8 bytes of the 128-bit hash: the same value as Python's
+  `mmh3.hash64(data, seed, signed=False)[0]`.
+
 ---
 ## Benchmarks
+
+### Hash32
 
 `MurmurHash3.Hash32` on each runtime (mean, lower is better):
 
@@ -85,12 +113,43 @@ None of the implementations allocate, and all three return identical, reference-
 
 These results are from an Intel Raptor Lake CPU, where `Hash32` uses its CPU-specific code path (Intel Ice Lake and newer). On other CPUs the general code path is used; it is about 10-19% slower for inputs of 16 bytes and larger and still matches or beats the other implementations. For large inputs, throughput is bounded by the algorithm itself: MurmurHash3_x86_32 is a strictly serial chain of operations per 4-byte block.
 
+### Hash128
+
+`MurmurHash3.Hash128` on each runtime (mean, lower is better):
+
+| Input | .NET 8.0 | .NET 10.0 | .NET 11.0 |
+|---|---:|---:|---:|
+| 3 B | 2.43 ns | 2.41 ns | 2.42 ns |
+| 16 B | 2.74 ns | 2.73 ns | 2.69 ns |
+| 40 B | 4.27 ns | 4.26 ns | 4.17 ns |
+| 128 B | 10.47 ns | 10.44 ns | 10.33 ns |
+| 1024 B | 84.27 ns | 86.33 ns | 83.38 ns |
+| 16384 B | 1,341 ns | 1,340 ns | 1,342 ns |
+
+Compared with a direct port of the reference implementation and with HashDepot (time relative to this library, lower is better):
+
+| Input | This library (.NET 8.0) | Reference port | [HashDepot](https://github.com/ssg/HashDepot) 3.2.0 | This library (.NET 10.0) | Reference port | HashDepot 3.2.0 |
+|---|---:|---:|---:|---:|---:|---:|
+| 3 B | 2.43 ns | 1.44x | 8.32x | 2.41 ns | 1.34x | 7.90x |
+| 16 B | 2.74 ns | 1.50x | 6.12x | 2.73 ns | 1.36x | 2.65x |
+| 40 B | 4.27 ns | 1.60x | 4.33x | 4.26 ns | 1.58x | 3.25x |
+| 128 B | 10.47 ns | 1.45x | 2.81x | 10.44 ns | 1.43x | 1.69x |
+| 1024 B | 84.27 ns | 1.29x | 1.42x | 86.33 ns | 1.23x | 1.28x |
+| 16384 B | 1,341 ns | 1.23x | 1.24x | 1,340 ns | 1.23x | 1.24x |
+
+For short inputs of mixed lengths (0-32 bytes), where the tail handling cannot be predicted, the reference port takes
+2.0-2.3x as long. This library does not allocate; HashDepot allocates a 40-byte array per call.
+
+`Hash128` uses the same CPU-specific code path as `Hash32` on Intel Ice Lake and newer. The general code path is
+6-7% slower for 16-40 byte inputs and 20-23% slower for inputs of 128 bytes and larger.
+
 ```ini
 BenchmarkDotNet v0.16.0-preview.2, Linux Fedora Linux 45 (Kinoite), VM
 13th Gen Intel Core i9-13900K, 26 vCPUs, AVX2
 .NET 8.0.34, 9.0.23, 10.0.15, 11.0.0 (X64 RyuJIT x86-64-v3)
 ```
-Full results: [benchmarks/results-2026-11.md](benchmarks/results-2026-11.md). Run them yourself with
-`dotnet run -c Release --project benchmarks/MurmurHash.Benchmarks -f net10.0 -- --filter "*HashBenchmarks*" --tfms net8.0,net10.0`.
+Full results: [benchmarks/results-2026-11.md](benchmarks/results-2026-11.md) (`Hash32`) and
+[benchmarks/results-hash128-2026-11.md](benchmarks/results-hash128-2026-11.md) (`Hash128`). Run them yourself with
+`dotnet run -c Release --project benchmarks/MurmurHash.Benchmarks -f net10.0 -- --filter "*HashBenchmarks*" "*Hash128Benchmarks*" --tfms net8.0,net10.0`.
 
 ---

@@ -7,10 +7,10 @@ namespace MurmurHash;
 
 /// <summary>
 /// Zero allocation implementation of Austin Appleby's MurmurHash3.
-/// Output is identical to the reference implementation (SMHasher <c>MurmurHash3_x86_32</c>)
+/// Output is identical to the reference implementation (SMHasher <c>MurmurHash3_x86_32</c> and <c>MurmurHash3_x64_128</c>)
 /// on every platform, independent of machine endianness.
 /// </summary>
-public static class MurmurHash3
+public static partial class MurmurHash3
 {
     private const uint C1 = 0xcc9e2d51;
     private const uint C2 = 0x1b873593;
@@ -90,24 +90,37 @@ public static class MurmurHash3
     {
         /// <summary>Returns <c>h * 5 + 0xe6546b64</c>.</summary>
         uint TimesFivePlusConstant(uint h);
+
+        /// <summary>Returns <c>h * 5 + c</c>.</summary>
+        ulong TimesFivePlusConstant(ulong h, ulong c);
     }
 
-    /// <summary>Default: the JIT emits <c>lea r, [h + h*4]; add r, c</c> (2 instructions, 2 cycles everywhere).</summary>
+    /// <summary>
+    /// Default: the JIT emits <c>lea r, [h + h*4]; add r, c</c>, two instructions on the dependency chain
+    /// (3 cycles measured on Raptor Lake, where any scaled LEA takes 2; 2 cycles on Skylake-family cores).
+    /// </summary>
     internal readonly struct MultiplyStep : IStep
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public uint TimesFivePlusConstant(uint h) => h * 5 + 0xe6546b64;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ulong TimesFivePlusConstant(ulong h, ulong c) => h * 5 + c;
     }
 
     /// <summary>
-    /// The JIT emits a single <c>lea r, [h + h*4 + c]</c>: 1 cycle on Ice Lake and newer Intel cores
-    /// (measured 16-20% faster for large inputs on Raptor Lake), but 3 cycles on Skylake-family cores.
+    /// The JIT emits a single <c>lea r, [h + h*4 + c]</c>. On Ice Lake and newer Intel cores it costs no more than
+    /// the scaled LEA alone (2 cycles measured on Raptor Lake, against 3 for the default pair; 16-20% faster for
+    /// large inputs), but on Skylake-family cores it takes 3 cycles, against 2.
     /// Only used when <see cref="CpuInfo.HasFastComplexLea"/> is true.
     /// </summary>
     internal readonly struct FusedLeaStep : IStep
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public uint TimesFivePlusConstant(uint h) => h + (h << 2) + 0xe6546b64;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ulong TimesFivePlusConstant(ulong h, ulong c) => h + (h << 2) + c;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

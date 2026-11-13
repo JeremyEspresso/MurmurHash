@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using MurmurHash;
@@ -14,6 +15,7 @@ using var stream = typeof(MurmurHash3).Assembly.GetManifestResourceStream("vecto
     ?? throw new InvalidOperationException("vectors.txt resource missing");
 using var reader = new StreamReader(stream);
 
+Span<byte> destination = stackalloc byte[MurmurHash3.Hash128SizeInBytes];
 int checks = 0;
 int failures = 0;
 while (reader.ReadLine() is { } line)
@@ -27,6 +29,8 @@ while (reader.ReadLine() is { } line)
     int length = int.Parse(p[0], CultureInfo.InvariantCulture);
     uint seed = uint.Parse(p[1], CultureInfo.InvariantCulture);
     uint expected = uint.Parse(p[2], CultureInfo.InvariantCulture);
+    ulong expectedLow = ulong.Parse(p[3].AsSpan(0, 16), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+    ulong expectedHigh = ulong.Parse(p[3].AsSpan(16, 16), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
 
     foreach (int offset in (ReadOnlySpan<int>)[0, 1, 3])
     {
@@ -37,18 +41,25 @@ while (reader.ReadLine() is { } line)
 
         Check(MurmurHash3.Hash32(input, seed), expected, length, seed, "Hash32");
         Check(MurmurHash3.Hash32(ref input, seed), expected, length, seed, "Hash32(ref)");
+        Check(MurmurHash3.Hash64(input, seed), expectedLow, length, seed, "Hash64");
+        Check(MurmurHash3.Hash128(input, seed), new UInt128(expectedHigh, expectedLow), length, seed, "Hash128");
+
+        MurmurHash3.Hash128(input, destination, seed);
+        Check(BinaryPrimitives.ReadUInt64LittleEndian(destination), expectedLow, length, seed, "Hash128(destination) low");
+        Check(BinaryPrimitives.ReadUInt64LittleEndian(destination[8..]), expectedHigh, length, seed, "Hash128(destination) high");
     }
 }
 
-Check(MurmurHash3.Hash32("Hello World!"u8, 420), 1535517821, 12, 420, "README sample");
+Check(MurmurHash3.Hash32("Hello World!"u8, 420), 1535517821u, 12, 420, "README sample");
 
 Console.WriteLine($"{(RuntimeFeature.IsDynamicCodeSupported ? "JIT" : "NativeAOT")}: {checks - failures}/{checks} checks passed");
-return failures == 0 && checks > 9000 ? 0 : 1;
+return failures == 0 && checks > 27000 ? 0 : 1;
 
-void Check(uint actual, uint expected, int length, uint seed, string api)
+void Check<T>(T actual, T expected, int length, uint seed, string api)
+    where T : IEquatable<T>
 {
     checks++;
-    if (actual != expected)
+    if (!actual.Equals(expected))
     {
         failures++;
         Console.WriteLine($"FAIL {api} length={length} seed={seed} expected={expected} actual={actual}");
