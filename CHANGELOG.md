@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+- `MurmurHash32` and `MurmurHash128`: incremental hashing for data that arrives in pieces or from a `Stream`, deriving from `System.IO.Hashing.NonCryptographicHashAlgorithm`. The result equals the one-shot methods over all appended data, however it is split. `GetCurrentHashAsUInt32()`, `GetCurrentHashAsUInt64()` and `GetCurrentHashAsUInt128()` (.NET 8 and later) return the hash without allocating.
+
+### Changed
+- The package now depends on [System.IO.Hashing](https://www.nuget.org/packages/System.IO.Hashing) (8.0.0 or later) on all target frameworks.
+
 ## [0.2.0] - 2026-11-13
 
 ### Added

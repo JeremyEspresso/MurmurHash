@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Compares this library with other MurmurHash3 packages on NuGet. Benchmarks only, never shipped. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-minimum</AnalysisLevel>
+    <Optimize>true</Optimize>
+    <RootNamespace>MurmurHash.Comparison</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+    <PackageReference Include="murmurhash" />
+    <PackageReference Include="Data.HashFunction.MurmurHash" />
+    <PackageReference Include="HashifyNET" />
+    <PackageReference Include="System.IO.Hashing" />
+  </ItemGroup>
+
+  <!--
+    The murmurhash package's assembly is also named MurmurHash.dll, and two assemblies with the same simple name cannot
+    both be referenced (CS1704; an extern alias does not help). This project therefore compiles the library's sources.
+  -->
+  <ItemGroup>
+    <Compile Include="..\..\src\MurmurHash\*.cs" Link="Library\%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

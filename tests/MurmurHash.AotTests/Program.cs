@@ -47,13 +47,25 @@ while (reader.ReadLine() is { } line)
         MurmurHash3.Hash128(input, destination, seed);
         Check(BinaryPrimitives.ReadUInt64LittleEndian(destination), expectedLow, length, seed, "Hash128(destination) low");
         Check(BinaryPrimitives.ReadUInt64LittleEndian(destination[8..]), expectedHigh, length, seed, "Hash128(destination) high");
+
+        // Incremental classes, with the input split in two at an arbitrary point.
+        int split = length / 3;
+        var murmur32 = new MurmurHash32(seed);
+        murmur32.Append(input[..split]);
+        murmur32.Append(input[split..]);
+        Check(murmur32.GetCurrentHashAsUInt32(), expected, length, seed, "MurmurHash32");
+
+        var murmur128 = new MurmurHash128(seed);
+        murmur128.Append(input[..split]);
+        murmur128.Append(input[split..]);
+        Check(murmur128.GetCurrentHashAsUInt128(), new UInt128(expectedHigh, expectedLow), length, seed, "MurmurHash128");
     }
 }
 
 Check(MurmurHash3.Hash32("Hello World!"u8, 420), 1535517821u, 12, 420, "README sample");
 
 Console.WriteLine($"{(RuntimeFeature.IsDynamicCodeSupported ? "JIT" : "NativeAOT")}: {checks - failures}/{checks} checks passed");
-return failures == 0 && checks > 27000 ? 0 : 1;
+return failures == 0 && checks > 36000 ? 0 : 1;
 
 void Check<T>(T actual, T expected, int length, uint seed, string api)
     where T : IEquatable<T>

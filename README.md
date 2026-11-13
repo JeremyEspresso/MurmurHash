@@ -71,6 +71,32 @@ Console.WriteLine(hash64);                          // 946505514389676568
 - `Hash64` returns `h1`, the first 8 bytes of the 128-bit hash: the same value as Python's
   `mmh3.hash64(data, seed, signed=False)[0]`.
 
+### Streams and data in pieces
+
+`MurmurHash32` and `MurmurHash128` hash data that arrives in pieces, or from a `Stream`. They derive from
+[`System.IO.Hashing.NonCryptographicHashAlgorithm`](https://learn.microsoft.com/dotnet/api/system.io.hashing.noncryptographichashalgorithm),
+like `XxHash32` and `Crc32`, so they work wherever that type is accepted. The result is the same as the one-shot
+methods over all appended data, however it is split.
+
+```cs
+var hasher = new MurmurHash128(seed: 420);
+hasher.Append("Hello "u8);
+hasher.Append("World!"u8);
+Console.WriteLine(hasher.GetCurrentHashAsUInt128().ToString("x32")); // 9ef90e0d6173d4c70d22a9c023252218
+
+using var file = File.OpenRead("data.bin");
+var fileHasher = new MurmurHash32();
+fileHasher.Append(file);                    // or await fileHasher.AppendAsync(file)
+uint fileHash = fileHasher.GetCurrentHashAsUInt32();
+```
+
+- `GetCurrentHash()` returns the bytes in the reference implementation's byte order (Python's `mmh3.mmh3_32_digest` and
+  `mmh3.hash_bytes`). `GetCurrentHashAsUInt32()`, `GetCurrentHashAsUInt64()` (the same value as `Hash64`) and
+  `GetCurrentHashAsUInt128()` (.NET 8 and later) return the value without allocating.
+- `GetHashAndReset()` and `Reset()` start over with the same seed. Instances are not thread-safe.
+- These classes need the [System.IO.Hashing](https://www.nuget.org/packages/System.IO.Hashing) package, which is
+  this library's only dependency on .NET 8 and later.
+
 ---
 ## Benchmarks
 
@@ -143,13 +169,53 @@ For short inputs of mixed lengths (0-32 bytes), where the tail handling cannot b
 `Hash128` uses the same CPU-specific code path as `Hash32` on Intel Ice Lake and newer. The general code path is
 6-7% slower for 16-40 byte inputs and 20-23% slower for inputs of 128 bytes and larger.
 
+### Streams and data in pieces
+
+`MurmurHash32` and `MurmurHash128` against the one-shot methods (.NET 10.0, mean, lower is better):
+
+| Input | `Hash32` | `MurmurHash32` | `Hash128` | `MurmurHash128` |
+|---|---:|---:|---:|---:|
+| 16 B, one `Append` | 2.37 ns | 4.10 ns | 2.69 ns | 5.44 ns |
+| 128 B, one `Append` | 20.42 ns | 22.40 ns | 10.35 ns | 12.97 ns |
+| 16 KB, one `Append` | 3,186 ns | 3,266 ns | 1,318 ns | 1,344 ns |
+| 16 KB in 7-byte pieces | | 6,806 ns | | 5,707 ns |
+
+For inputs of 1 KB and more, appending costs the same as the one-shot methods (within 1-4%).
+
+Compared with the other packages that hash MurmurHash3 incrementally, each through its own incremental or stream API
+(.NET 10.0, time relative to this library, lower is better):
+
+| Input | This library | [murmurhash](https://github.com/darrenkopp/murmurhash-net) 1.0.3 (unsafe) | [Data.HashFunction](https://github.com/deskasoft/Data.HashFunction) 3.1.2 | [HashifyNET](https://github.com/Deskasoft/HashifyNET) 7.1.1 |
+|---|---:|---:|---:|---:|
+| **32-bit** | | | | |
+| 16 B | 4.90 ns | 13.00x | 15.61x | 11.96x |
+| 16 KB | 3,031 ns | 1.26x | 4.27x | 1.91x |
+| 16 KB in 7-byte pieces | 6,827 ns | wrong hash | 15.92x | 2.10x |
+| 1 MB stream | 204 us | 1.22x | 4.14x | 1.85x |
+| **128-bit** | | | | |
+| 16 B | 5.08 ns | 12.83x | 20.05x | 15.27x |
+| 16 KB | 1,274 ns | 1.27x | 5.30x | 3.09x |
+| 16 KB in 7-byte pieces | 5,890 ns | wrong hash | wrong hash | 1.96x |
+| 16 KB in 1500-byte pieces | 1,300 ns | wrong hash | 6.13x | 3.06x |
+| 1 MB stream | 90.8 us | 1.20x | 5.52x | 2.73x |
+
+This library allocates nothing; the others allocate 64 B to 4.5 KB per hash (Data.HashFunction 110 KB for the
+7-byte pieces). "Wrong hash" means the package returns a different result than MurmurHash3 over the same bytes:
+murmurhash treats the end of every piece as the end of the input, and Data.HashFunction mishandles partial blocks
+between pieces. All other results were checked against the reference output before timing. These timings include
+writing the hash to a byte array, as the other packages do. murmurhash's managed variant, .NET 8.0 and
+System.IO.Hashing's xxHash (a different algorithm) are in the full results.
+
 ```ini
 BenchmarkDotNet v0.16.0-preview.2, Linux Fedora Linux 45 (Kinoite), VM
 13th Gen Intel Core i9-13900K, 26 vCPUs, AVX2
 .NET 8.0.34, 9.0.23, 10.0.15, 11.0.0 (X64 RyuJIT x86-64-v3)
 ```
 Full results: [benchmarks/results-2026-11.md](benchmarks/results-2026-11.md) (`Hash32`) and
-[benchmarks/results-hash128-2026-11.md](benchmarks/results-hash128-2026-11.md) (`Hash128`). Run them yourself with
-`dotnet run -c Release --project benchmarks/MurmurHash.Benchmarks -f net10.0 -- --filter "*HashBenchmarks*" "*Hash128Benchmarks*" --tfms net8.0,net10.0`.
+[benchmarks/results-hash128-2026-11.md](benchmarks/results-hash128-2026-11.md) (`Hash128`) and
+[benchmarks/results-incremental-2026-11.md](benchmarks/results-incremental-2026-11.md) (incremental classes) and
+[benchmarks/results-comparison-2026-11.md](benchmarks/results-comparison-2026-11.md) (other MurmurHash3 packages). Run them yourself with
+`dotnet run -c Release --project benchmarks/MurmurHash.Benchmarks -f net10.0 -- --filter "*HashBenchmarks*" "*Hash128Benchmarks*" "*IncrementalBenchmarks*" "*ChunkedAppendBenchmarks*" --tfms net8.0,net10.0`
+and `dotnet run -c Release --project benchmarks/MurmurHash.Comparison -f net10.0 -- --filter "*Comparison*"`.
 
 ---
