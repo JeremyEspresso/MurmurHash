@@ -15,8 +15,9 @@ internal static class CpuInfo
     internal const string DisableSwitchName = "MurmurHash.DisableCpuSpecificOptimizations";
 
     /// <summary>
-    /// True when <c>lea r, [b + i*s + disp]</c> (a 3-component LEA) has 1-cycle latency, which makes
-    /// <c>h * 5 + c</c> one instruction on the hash's serial dependency chain instead of two.
+    /// True when <c>lea r, [b + i*s + disp]</c> (a 3-component LEA) is no slower than a scaled 2-component LEA,
+    /// so writing <c>h * 5 + c</c> as one instruction instead of two takes a cycle off the hash's serial
+    /// dependency chain.
     /// </summary>
     internal static readonly bool HasFastComplexLea = DetectFastComplexLea();
 
@@ -55,8 +56,9 @@ internal static class CpuInfo
     }
 
     /// <summary>
-    /// Allowlist of CPUs with Sunny Cove or newer performance cores, where a 3-component LEA has 1-cycle latency.
-    /// Skylake through Comet Lake (3-cycle complex LEA), AMD (2 cycles, so no gain), E-core-only parts, and
+    /// Allowlist of CPUs with Sunny Cove or newer performance cores, where a 3-component LEA costs the same as a
+    /// scaled one (2 cycles measured on Raptor Lake). Skylake through Comet Lake (3 cycles, against 1 for a scaled
+    /// 2-component LEA), AMD and E-core-only parts (not measured), and
     /// anything unknown keep the default code. A missing entry only costs speed, never correctness.
     /// Model numbers: Linux <c>arch/x86/include/asm/intel-family.h</c>.
     /// </summary>

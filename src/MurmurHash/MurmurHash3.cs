@@ -95,7 +95,10 @@ public static partial class MurmurHash3
         ulong TimesFivePlusConstant(ulong h, ulong c);
     }
 
-    /// <summary>Default: the JIT emits <c>lea r, [h + h*4]; add r, c</c> (2 instructions, 2 cycles everywhere).</summary>
+    /// <summary>
+    /// Default: the JIT emits <c>lea r, [h + h*4]; add r, c</c>, two instructions on the dependency chain
+    /// (3 cycles measured on Raptor Lake, where any scaled LEA takes 2; 2 cycles on Skylake-family cores).
+    /// </summary>
     internal readonly struct MultiplyStep : IStep
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -106,8 +109,9 @@ public static partial class MurmurHash3
     }
 
     /// <summary>
-    /// The JIT emits a single <c>lea r, [h + h*4 + c]</c>: 1 cycle on Ice Lake and newer Intel cores
-    /// (measured 16-20% faster for large inputs on Raptor Lake), but 3 cycles on Skylake-family cores.
+    /// The JIT emits a single <c>lea r, [h + h*4 + c]</c>. On Ice Lake and newer Intel cores it costs no more than
+    /// the scaled LEA alone (2 cycles measured on Raptor Lake, against 3 for the default pair; 16-20% faster for
+    /// large inputs), but on Skylake-family cores it takes 3 cycles, against 2.
     /// Only used when <see cref="CpuInfo.HasFastComplexLea"/> is true.
     /// </summary>
     internal readonly struct FusedLeaStep : IStep
