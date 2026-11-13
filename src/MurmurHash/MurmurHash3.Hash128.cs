@@ -106,38 +106,39 @@ public static partial class MurmurHash3
         // Tail: 0-15 remaining bytes as two little-endian words, read with overlapping loads that never leave
         // the tail. Measured 25-50% faster than the reference implementation's byte-by-byte switch for 7-15
         // byte tails, and about twice as fast for short inputs of mixed lengths, where a switch mispredicts.
-        ulong t1 = 0;
-        ulong t2 = 0;
+        // Each word is mixed only inside the branch that reads it, so absent words cost no multiplies.
         int remainder = length & 15;
-        if (remainder > 8)
+        if (remainder != 0)
         {
-            t1 = ReadUInt64LittleEndian(ref p);
-            // The 8 bytes ending at the last input byte, shifted so that only tail bytes 8.. remain.
-            t2 = ReadUInt64LittleEndian(ref Unsafe.Add(ref p, remainder - 8)) >> ((16 - remainder) * 8);
-        }
-        else if (remainder >= 4)
-        {
-            // Two 4-byte loads that may overlap; overlapping bytes hold the same value, so OR is exact.
-            t1 = ReadUInt32LittleEndian(ref p)
-                | ((ulong)ReadUInt32LittleEndian(ref Unsafe.Add(ref p, remainder - 4)) << ((remainder - 4) * 8));
-        }
-        else if (remainder > 0)
-        {
-            t1 = p;
-            if (remainder > 1)
+            ulong t1;
+            if (remainder > 8)
             {
-                t1 |= (ulong)Unsafe.Add(ref p, 1) << 8;
+                t1 = ReadUInt64LittleEndian(ref p);
+                // The 8 bytes ending at the last input byte, shifted so that only tail bytes 8.. remain.
+                h2 ^= MixK2(ReadUInt64LittleEndian(ref Unsafe.Add(ref p, remainder - 8)) >> ((16 - remainder) * 8));
+            }
+            else if (remainder >= 4)
+            {
+                // Two 4-byte loads that may overlap; overlapping bytes hold the same value, so OR is exact.
+                t1 = ReadUInt32LittleEndian(ref p)
+                    | ((ulong)ReadUInt32LittleEndian(ref Unsafe.Add(ref p, remainder - 4)) << ((remainder - 4) * 8));
+            }
+            else
+            {
+                t1 = p;
+                if (remainder > 1)
+                {
+                    t1 |= (ulong)Unsafe.Add(ref p, 1) << 8;
+                }
+
+                if (remainder > 2)
+                {
+                    t1 |= (ulong)Unsafe.Add(ref p, 2) << 16;
+                }
             }
 
-            if (remainder > 2)
-            {
-                t1 |= (ulong)Unsafe.Add(ref p, 2) << 16;
-            }
+            h1 ^= MixK1(t1);
         }
-
-        // MixK1(0) == MixK2(0) == 0, so mixing an absent tail word is a no-op and needs no branch.
-        h2 ^= MixK2(t2);
-        h1 ^= MixK1(t1);
 
         h1 ^= (ulong)length;
         h2 ^= (ulong)length;

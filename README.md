@@ -48,7 +48,7 @@ The `Hash32(ref ReadOnlySpan<byte>, uint)` overload from 0.0.x is still availabl
 ### 128-bit and 64-bit hashes
 
 `Hash128` and `Hash64` implement MurmurHash3 x64 128-bit, the variant to use when you need more than 32 bits.
-It is also faster than `Hash32` for inputs of 40 bytes and larger (about 1.8x at 128 bytes and 2.4x for large inputs), because it processes 16 bytes per step.
+It is also faster than `Hash32` for inputs of 40 bytes and larger (about 2x at 128 bytes and 2.4x for large inputs), because it processes 16 bytes per step.
 
 ```cs
 ReadOnlySpan<byte> data = "Hello World!"u8;
@@ -119,29 +119,29 @@ These results are from an Intel Raptor Lake CPU, where `Hash32` uses its CPU-spe
 
 | Input | .NET 8.0 | .NET 10.0 | .NET 11.0 |
 |---|---:|---:|---:|
-| 3 B | 2.65 ns | 2.65 ns | 2.66 ns |
-| 16 B | 3.32 ns | 3.32 ns | 3.25 ns |
-| 40 B | 4.50 ns | 4.50 ns | 4.40 ns |
-| 128 B | 11.68 ns | 11.56 ns | 11.44 ns |
-| 1024 B | 85.30 ns | 84.21 ns | 84.22 ns |
-| 16384 B | 1,344 ns | 1,341 ns | 1,342 ns |
+| 3 B | 2.43 ns | 2.41 ns | 2.42 ns |
+| 16 B | 2.74 ns | 2.73 ns | 2.69 ns |
+| 40 B | 4.27 ns | 4.26 ns | 4.17 ns |
+| 128 B | 10.47 ns | 10.44 ns | 10.33 ns |
+| 1024 B | 84.27 ns | 86.33 ns | 83.38 ns |
+| 16384 B | 1,341 ns | 1,340 ns | 1,342 ns |
 
 Compared with a direct port of the reference implementation and with HashDepot (time relative to this library, lower is better):
 
 | Input | This library (.NET 8.0) | Reference port | [HashDepot](https://github.com/ssg/HashDepot) 3.2.0 | This library (.NET 10.0) | Reference port | HashDepot 3.2.0 |
 |---|---:|---:|---:|---:|---:|---:|
-| 3 B | 2.65 ns | 1.32x | 7.60x | 2.65 ns | 1.22x | 7.09x |
-| 16 B | 3.32 ns | 1.23x | 5.04x | 3.32 ns | 1.12x | 2.17x |
-| 40 B | 4.50 ns | 1.52x | 4.08x | 4.50 ns | 1.50x | 3.22x |
-| 128 B | 11.68 ns | 1.29x | 2.50x | 11.56 ns | 1.29x | 1.53x |
-| 1024 B | 85.30 ns | 1.26x | 1.40x | 84.21 ns | 1.28x | 1.31x |
-| 16384 B | 1,344 ns | 1.23x | 1.24x | 1,341 ns | 1.23x | 1.24x |
+| 3 B | 2.43 ns | 1.44x | 8.32x | 2.41 ns | 1.34x | 7.90x |
+| 16 B | 2.74 ns | 1.50x | 6.12x | 2.73 ns | 1.36x | 2.65x |
+| 40 B | 4.27 ns | 1.60x | 4.33x | 4.26 ns | 1.58x | 3.25x |
+| 128 B | 10.47 ns | 1.45x | 2.81x | 10.44 ns | 1.43x | 1.69x |
+| 1024 B | 84.27 ns | 1.29x | 1.42x | 86.33 ns | 1.23x | 1.28x |
+| 16384 B | 1,341 ns | 1.23x | 1.24x | 1,340 ns | 1.23x | 1.24x |
 
 For short inputs of mixed lengths (0-32 bytes), where the tail handling cannot be predicted, the reference port takes
-1.9-2.3x as long. This library does not allocate; HashDepot allocates a 40-byte array per call.
+2.0-2.3x as long. This library does not allocate; HashDepot allocates a 40-byte array per call.
 
 `Hash128` uses the same CPU-specific code path as `Hash32` on Intel Ice Lake and newer. The general code path is
-4-7% slower for 16-40 byte inputs and up to 23% slower for large inputs, which is the speed of the reference port.
+6-7% slower for 16-40 byte inputs and 20-23% slower for inputs of 128 bytes and larger.
 
 ```ini
 BenchmarkDotNet v0.16.0-preview.2, Linux Fedora Linux 45 (Kinoite), VM
