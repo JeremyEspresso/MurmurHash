@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-13
+
 ### Added
 - MurmurHash3 x64 128-bit, with output identical to the reference implementation (SMHasher `MurmurHash3_x64_128`) on every platform and endianness:
   - `Hash128(ReadOnlySpan<byte> bytes, Span<byte> destination, uint seed = 0)` writes the 16-byte hash in the reference byte order (all target frameworks).
@@ -37,6 +39,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 - Initial release: zero-allocation `MurmurHash3.Hash32` (x86, 32-bit) for `net7.0`.
 
-[Unreleased]: https://github.com/JeremyEspresso/MurmurHash/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/JeremyEspresso/MurmurHash/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/JeremyEspresso/MurmurHash/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/JeremyEspresso/MurmurHash/compare/v0.0.1...v0.1.0
 [0.0.1]: https://github.com/JeremyEspresso/MurmurHash/releases/tag/v0.0.1

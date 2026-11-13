@@ -5,7 +5,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
     <PackageId>JeremyEspresso.MurmurHash</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Title>MurmurHash</Title>
     <Description>Super fast zero allocation MurmurHash3 implementation.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
