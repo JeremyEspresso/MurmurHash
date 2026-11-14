@@ -29,6 +29,10 @@ jobs:
       run: dotnet build -c Release --no-restore
     - name: Test (net8.0 library build, on .NET 8/9/10/11)
       run: dotnet test -c Release --no-build
+    - name: Test without AVX2 (Hash32Batch fallback through the public API)
+      run: dotnet test --project tests/MurmurHash.UnitTests -c Release --no-build
+      env:
+        DOTNET_EnableAVX2: 0
     - name: Test (netstandard2.0 library build)
       run: dotnet test --project tests/MurmurHash.UnitTests -c Release -p:LibraryTargetFramework=netstandard2.0
     - name: Test (netstandard2.1 library build)
