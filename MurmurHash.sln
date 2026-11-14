@@ -17,6 +17,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MurmurHash.UnitTests", "tes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MurmurHash.AotTests", "tests\MurmurHash.AotTests\MurmurHash.AotTests.csproj", "{77330894-B7AE-4E46-976F-BEFE75CA35A9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MurmurHash.Comparison", "benchmarks\MurmurHash.Comparison\MurmurHash.Comparison.csproj", "{A71AB327-A8BC-4797-A0A6-D66323053491}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -75,6 +77,18 @@ Global
 		{77330894-B7AE-4E46-976F-BEFE75CA35A9}.Release|x64.Build.0 = Release|Any CPU
 		{77330894-B7AE-4E46-976F-BEFE75CA35A9}.Release|x86.ActiveCfg = Release|Any CPU
 		{77330894-B7AE-4E46-976F-BEFE75CA35A9}.Release|x86.Build.0 = Release|Any CPU
+		{A71AB327-A8BC-4797-A0A6-D66323053491}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A71AB327-A8BC-4797-A0A6-D66323053491}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A71AB327-A8BC-4797-A0A6-D66323053491}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A71AB327-A8BC-4797-A0A6-D66323053491}.Debug|x64.Build.0 = Debug|Any CPU
+		{A71AB327-A8BC-4797-A0A6-D66323053491}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A71AB327-A8BC-4797-A0A6-D66323053491}.Debug|x86.Build.0 = Debug|Any CPU
+		{A71AB327-A8BC-4797-A0A6-D66323053491}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A71AB327-A8BC-4797-A0A6-D66323053491}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A71AB327-A8BC-4797-A0A6-D66323053491}.Release|x64.ActiveCfg = Release|Any CPU
+		{A71AB327-A8BC-4797-A0A6-D66323053491}.Release|x64.Build.0 = Release|Any CPU
+		{A71AB327-A8BC-4797-A0A6-D66323053491}.Release|x86.ActiveCfg = Release|Any CPU
+		{A71AB327-A8BC-4797-A0A6-D66323053491}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -84,6 +98,7 @@ Global
 		{601E69D2-ACEA-4F98-B77E-36E0DEBDF532} = {DD8A5AC3-4B2D-466D-8819-691EFDC32C84}
 		{F0F79037-3C25-4150-825C-A777912F28DE} = {173FDEE4-4245-4E20-81F0-4348D617CD35}
 		{77330894-B7AE-4E46-976F-BEFE75CA35A9} = {173FDEE4-4245-4E20-81F0-4348D617CD35}
+		{A71AB327-A8BC-4797-A0A6-D66323053491} = {EF11FDD3-6E4A-447D-9988-DB9D85DD364E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7A5E7744-7B56-46DA-A60E-88DB78AFC81C}
