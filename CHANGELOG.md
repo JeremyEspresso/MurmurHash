@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-14
+
 ### Added
 - `MurmurHash32` and `MurmurHash128`: incremental hashing for data that arrives in pieces or from a `Stream`, deriving from `System.IO.Hashing.NonCryptographicHashAlgorithm`. The result equals the one-shot methods over all appended data, however it is split. `GetCurrentHashAsUInt32()`, `GetCurrentHashAsUInt64()` and `GetCurrentHashAsUInt128()` (.NET 8 and later) return the hash without allocating.
 - `Hash32Batch`: hashes many keys of the same length in one call, writing one 32-bit hash per key to a destination span (the same values as calling `Hash32` on each key). Overloads take a buffer of fixed-length keys, `uint` keys or `ulong` keys. With AVX2, keys of 4, 8 and multiples of 16 bytes are hashed 8 at a time; other lengths, other CPUs and the .NET Standard builds use a 4-key interleaved scalar loop.
@@ -47,7 +49,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 - Initial release: zero-allocation `MurmurHash3.Hash32` (x86, 32-bit) for `net7.0`.
 
-[Unreleased]: https://github.com/JeremyEspresso/MurmurHash/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/JeremyEspresso/MurmurHash/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/JeremyEspresso/MurmurHash/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/JeremyEspresso/MurmurHash/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/JeremyEspresso/MurmurHash/compare/v0.0.1...v0.1.0
 [0.0.1]: https://github.com/JeremyEspresso/MurmurHash/releases/tag/v0.0.1
