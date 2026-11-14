@@ -28,15 +28,12 @@ internal static class CpuInfo
             return false;
         }
 
-#if NET8_0_OR_GREATER
-        if (!X86Base.IsSupported)
+        if (!TryCpuId(0, out _, out int ebx, out int ecx, out int edx) || !TryCpuId(1, out int eax, out _, out _, out _))
         {
             return false;
         }
 
-        (_, int ebx, int ecx, int edx) = X86Base.CpuId(0, 0);
         bool isIntel = ebx == 0x756e6547 && edx == 0x49656e69 && ecx == 0x6c65746e; // "GenuineIntel"
-        (int eax, _, _, _) = X86Base.CpuId(1, 0);
         int family = (eax >> 8) & 0xF;
         int model = (eax >> 4) & 0xF;
         if (family == 0xF)
@@ -50,10 +47,49 @@ internal static class CpuInfo
         }
 
         return IsFastComplexLeaCpu(isIntel, family, model);
-#else
-        return false;
-#endif
     }
+
+#if NET8_0_OR_GREATER
+    private static bool TryCpuId(int leaf, out int eax, out int ebx, out int ecx, out int edx)
+    {
+        if (!X86Base.IsSupported)
+        {
+            eax = ebx = ecx = edx = 0;
+            return false;
+        }
+
+        (eax, ebx, ecx, edx) = X86Base.CpuId(leaf, 0);
+        return true;
+    }
+#else
+    /// <summary>
+    /// The netstandard builds are what apps on .NET 5, 6 and 7 load (they have no net8.0 asset to pick), and those
+    /// runtimes have <c>X86Base.CpuId</c>, so it is called through reflection, once. Elsewhere (.NET Framework, Mono,
+    /// .NET Core 3.x, non-x86) the type is missing and the default code path is used.
+    /// </summary>
+    private static bool TryCpuId(int leaf, out int eax, out int ebx, out int ecx, out int edx)
+    {
+        eax = ebx = ecx = edx = 0;
+        try
+        {
+            var x86Base = Type.GetType("System.Runtime.Intrinsics.X86.X86Base", throwOnError: false);
+            if (x86Base?.GetProperty("IsSupported")?.GetValue(null) is not true
+                || x86Base.GetMethod("CpuId", [typeof(int), typeof(int)])?.Invoke(null, [leaf, 0]) is not ValueTuple<int, int, int, int> r)
+            {
+                return false;
+            }
+
+            (eax, ebx, ecx, edx) = r;
+            return true;
+        }
+#pragma warning disable CA1031 // Any failure only means the default code path.
+        catch (Exception)
+#pragma warning restore CA1031
+        {
+            return false;
+        }
+    }
+#endif
 
     /// <summary>
     /// Allowlist of CPUs with Sunny Cove or newer performance cores, where a 3-component LEA costs the same as a

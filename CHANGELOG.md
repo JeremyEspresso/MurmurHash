@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 - The package now depends on [System.IO.Hashing](https://www.nuget.org/packages/System.IO.Hashing) (8.0.0 or later) on all target frameworks.
+- The .NET Standard builds now detect the CPU too, so apps on .NET 5, 6 and 7 (which load the `netstandard2.1` build) use the CPU-specific code path on Intel Ice Lake and newer, like the `net8.0` build: `Hash32` measured 11-19% faster for inputs of 16 bytes and larger, and `Hash128` takes the same path. .NET Framework, Mono and .NET Core 3.x are unchanged.
 
 ## [0.2.0] - 2026-11-13
 

@@ -38,6 +38,25 @@ public class CpuSpecificTests
         }
     }
 
+    // Every library build detects the CPU, the netstandard ones through reflection (they are what .NET 5-7 apps load).
+    [Fact]
+    public void HasFastComplexLea_MatchesDirectCpuId()
+    {
+        bool expected = false;
+        if (System.Runtime.Intrinsics.X86.X86Base.IsSupported
+            && !(AppContext.TryGetSwitch(CpuInfo.DisableSwitchName, out bool disabled) && disabled))
+        {
+            var (_, ebx, ecx, edx) = System.Runtime.Intrinsics.X86.X86Base.CpuId(0, 0);
+            int eax = System.Runtime.Intrinsics.X86.X86Base.CpuId(1, 0).Eax;
+            int family = (eax >> 8) & 0xF;
+            int model = ((eax >> 4) & 0xF) | (family is 0x6 or 0xF ? ((eax >> 16) & 0xF) << 4 : 0);
+            family += family == 0xF ? (eax >> 20) & 0xFF : 0;
+            expected = CpuInfo.IsFastComplexLeaCpu(ebx == 0x756e6547 && edx == 0x49656e69 && ecx == 0x6c65746e, family, model);
+        }
+
+        Assert.Equal(expected, CpuInfo.HasFastComplexLea);
+    }
+
     [Theory]
     [InlineData(true, 6, 0xB7, true)]   // Raptor Lake (i9-13900K)
     [InlineData(true, 6, 0x97, true)]   // Alder Lake
