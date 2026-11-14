@@ -97,6 +97,27 @@ uint fileHash = fileHasher.GetCurrentHashAsUInt32();
 - These classes need the [System.IO.Hashing](https://www.nuget.org/packages/System.IO.Hashing) package, which is
   this library's only dependency on .NET 8 and later.
 
+### Many keys at once
+
+`Hash32Batch` hashes many keys of the same length in one call and writes one hash per key: the same values as calling
+`Hash32` on each key, 3-5x faster on CPUs with AVX2.
+
+```cs
+uint[] userIds = LoadUserIds();
+var hashes = new uint[userIds.Length];
+MurmurHash3.Hash32Batch(userIds, hashes, seed: 420);       // uint and ulong keys
+
+Guid[] ids = LoadIds();                                     // or any fixed-length keys, back to back
+MurmurHash3.Hash32Batch(MemoryMarshal.AsBytes(ids.AsSpan()), keyLength: 16, hashes, seed: 420);
+```
+
+- With AVX2, keys of 4, 8, 16, 32, 48, 64, ... bytes (and `uint`/`ulong` keys) are hashed 8 at a time. Other key
+  lengths, other CPUs and the .NET Standard builds hash 4 keys at a time without SIMD, still about 1.3x faster than
+  a loop.
+- `uint` and `ulong` keys are hashed as their little-endian bytes on every machine. `uint` keys can be hashed in
+  place (`Hash32Batch(keys, keys)`).
+- For keys of different lengths, call `Hash32` in a loop: hashing them together measured only about 1.3x faster.
+
 ---
 ## Benchmarks
 
@@ -206,6 +227,25 @@ between pieces. All other results were checked against the reference output befo
 writing the hash to a byte array, as the other packages do. murmurhash's managed variant, .NET 8.0 and
 System.IO.Hashing's xxHash (a different algorithm) are in the full results.
 
+### Hash32Batch
+
+`Hash32Batch` against a loop of `Hash32` calls, 1024 keys (.NET 10.0, time per key, lower is better):
+
+| Keys | Loop of `Hash32` | `Hash32Batch` | Without AVX2 |
+|---|---:|---:|---:|
+| 4 B | 1.39 ns | 0.27 ns (5.1x) | 1.00 ns (1.4x) |
+| 8 B | 1.73 ns | 0.47 ns (3.7x) | 1.34 ns (1.3x) |
+| 12 B | 2.14 ns | 1.70 ns (1.3x) | 1.69 ns (1.3x) |
+| 16 B | 2.65 ns | 0.76 ns (3.5x) | 2.06 ns (1.3x) |
+| 32 B | 4.44 ns | 1.49 ns (3.0x) | 3.44 ns (1.3x) |
+| 64 B | 8.67 ns | 2.85 ns (3.0x) | 6.24 ns (1.4x) |
+| `uint` | 1.13 ns | 0.27 ns (4.1x) | 0.79 ns (1.4x) |
+| `ulong` | 1.45 ns | 0.44 ns (3.3x) | 1.14 ns (1.3x) |
+
+12-byte keys have no SIMD kernel and take the path without AVX2. On .NET 8.0 the speed-ups are within 10% of these.
+For `uint` and `ulong` keys, a loop hand-written for the constant length is faster than calling `Hash32` (0.84 ns and
+1.27 ns per key); `Hash32Batch` is 3.1x and 2.9x faster than that.
+
 ```ini
 BenchmarkDotNet v0.16.0-preview.2, Linux Fedora Linux 45 (Kinoite), VM
 13th Gen Intel Core i9-13900K, 26 vCPUs, AVX2
@@ -214,8 +254,9 @@ BenchmarkDotNet v0.16.0-preview.2, Linux Fedora Linux 45 (Kinoite), VM
 Full results: [benchmarks/results-2026-11.md](benchmarks/results-2026-11.md) (`Hash32`) and
 [benchmarks/results-hash128-2026-11.md](benchmarks/results-hash128-2026-11.md) (`Hash128`) and
 [benchmarks/results-incremental-2026-11.md](benchmarks/results-incremental-2026-11.md) (incremental classes) and
-[benchmarks/results-comparison-2026-11.md](benchmarks/results-comparison-2026-11.md) (other MurmurHash3 packages). Run them yourself with
-`dotnet run -c Release --project benchmarks/MurmurHash.Benchmarks -f net10.0 -- --filter "*HashBenchmarks*" "*Hash128Benchmarks*" "*IncrementalBenchmarks*" "*ChunkedAppendBenchmarks*" --tfms net8.0,net10.0`
+[benchmarks/results-comparison-2026-11.md](benchmarks/results-comparison-2026-11.md) (other MurmurHash3 packages) and
+[benchmarks/results-batch-2026-11.md](benchmarks/results-batch-2026-11.md) (`Hash32Batch`). Run them yourself with
+`dotnet run -c Release --project benchmarks/MurmurHash.Benchmarks -f net10.0 -- --filter "*HashBenchmarks*" "*Hash128Benchmarks*" "*IncrementalBenchmarks*" "*ChunkedAppendBenchmarks*" "*Hash32Batch*" --tfms net8.0,net10.0`
 and `dotnet run -c Release --project benchmarks/MurmurHash.Comparison -f net10.0 -- --filter "*Comparison*"`.
 
 ---

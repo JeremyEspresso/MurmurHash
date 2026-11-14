@@ -60,12 +60,46 @@ while (reader.ReadLine() is { } line)
         murmur128.Append(input[split..]);
         Check(murmur128.GetCurrentHashAsUInt128(), new UInt128(expectedHigh, expectedLow), length, seed, "MurmurHash128");
     }
+
+    if (length > 0)
+    {
+        // 9 copies of the key: 8 go through the SIMD path where there is one, the last through the scalar rest.
+        var keys = new byte[length * 9];
+        for (int i = 0; i < 9; i++)
+        {
+            data.AsSpan(0, length).CopyTo(keys.AsSpan(i * length));
+        }
+
+        var hashes = new uint[9];
+        MurmurHash3.Hash32Batch(keys, length, hashes, seed);
+        Check(Array.TrueForAll(hashes, h => h == expected), true, length, seed, "Hash32Batch");
+    }
+}
+
+var integers = new ulong[37];
+for (int i = 0; i < integers.Length; i++)
+{
+    integers[i] = BinaryPrimitives.ReadUInt64LittleEndian(data.AsSpan(i * 8));
+}
+
+var batch = new uint[integers.Length];
+MurmurHash3.Hash32Batch(integers, batch, 69);
+for (int i = 0; i < integers.Length; i++)
+{
+    Check(batch[i], MurmurHash3.Hash32(data.AsSpan(i * 8, 8), 69), 8, 69, "Hash32Batch(ulong)");
+}
+
+var integers32 = Array.ConvertAll(integers, k => (uint)k);
+MurmurHash3.Hash32Batch(integers32, batch, 69);
+for (int i = 0; i < integers.Length; i++)
+{
+    Check(batch[i], MurmurHash3.Hash32(data.AsSpan(i * 8, 4), 69), 4, 69, "Hash32Batch(uint)");
 }
 
 Check(MurmurHash3.Hash32("Hello World!"u8, 420), 1535517821u, 12, 420, "README sample");
 
 Console.WriteLine($"{(RuntimeFeature.IsDynamicCodeSupported ? "JIT" : "NativeAOT")}: {checks - failures}/{checks} checks passed");
-return failures == 0 && checks > 36000 ? 0 : 1;
+return failures == 0 && checks > 37600 ? 0 : 1;
 
 void Check<T>(T actual, T expected, int length, uint seed, string api)
     where T : IEquatable<T>
